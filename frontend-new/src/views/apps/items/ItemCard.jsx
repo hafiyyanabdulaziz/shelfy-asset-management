@@ -1,0 +1,96 @@
+'use client'
+
+// MUI Imports
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CardMedia from '@mui/material/CardMedia'
+import Typography from '@mui/material/Typography'
+import IconButton from '@mui/material/IconButton'
+import Box from '@mui/material/Box'
+import Chip from '@mui/material/Chip'
+
+// Third-party Imports
+import { useSession } from 'next-auth/react'
+
+const ItemCard = ({ item, onUpdate, onEdit }) => {
+  const { data: session } = useSession()
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this item?')) {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/items/${item.id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`
+          }
+        })
+
+        if (res.ok) {
+          onUpdate()
+        }
+      } catch (err) {
+        console.error('Failed to delete item', err)
+      }
+    }
+  }
+
+  const mainPhoto = item.photos && item.photos.length > 0 
+    ? `${process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '')}${item.photos[0].photoUrl}` 
+    : 'https://placehold.co/600x400?text=No+Image'
+
+  return (
+    <Card className='h-full flex flex-col hover:shadow-lg transition-shadow'>
+      <CardMedia
+        component='img'
+        height='200'
+        image={mainPhoto}
+        alt={item.name}
+        className='h-48 object-cover'
+      />
+      <CardContent className='flex-1 flex flex-col gap-4'>
+        <div className='flex justify-between items-start'>
+          <Typography variant='h6' className='font-bold line-clamp-1'>
+            {item.name}
+          </Typography>
+          <div className='flex gap-1'>
+            <IconButton size='small' onClick={onEdit}>
+              <i className='tabler-edit text-xl' />
+            </IconButton>
+            <IconButton size='small' color='error' onClick={handleDelete}>
+              <i className='tabler-trash text-xl' />
+            </IconButton>
+          </div>
+        </div>
+        
+        <Typography variant='body2' color='text.secondary' className='line-clamp-2 min-bs-[40px]'>
+          {item.description || 'No description provided.'}
+        </Typography>
+
+        <Box className='flex flex-wrap gap-2'>
+          <Chip 
+            size='small' 
+            icon={<i className='tabler-box text-sm' />} 
+            label={`Qty: ${item.qty || 0}`} 
+            variant='outlined' 
+          />
+          {item.location && (
+            <Chip 
+              size='small' 
+              icon={<i className='tabler-map-pin text-sm' />} 
+              label={item.location} 
+              variant='outlined' 
+            />
+          )}
+        </Box>
+
+        <div className='mt-auto pt-2'>
+          <Typography variant='h5' color='primary' className='font-bold'>
+            ${item.price ? Number(item.price).toLocaleString() : 0}
+          </Typography>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default ItemCard

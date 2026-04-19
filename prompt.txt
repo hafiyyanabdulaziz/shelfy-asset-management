@@ -1,5 +1,6 @@
 tolong kamu buatkan file issue.md yang berisi detail implementasi yang akan diimplementasikan oleh junior developer atau model ai yang lebih murah.
 
-saya baru membeli template FE baru di folder frontend-new.
-saya ingin fitur login di template tersebut terintegrasi dengan login di backend.
+saya sudah melakukan integrasi login dengan backend.
+saya ingin memigrasikan fitur yang sudah dibuat di folder frontend (lama) ke frontend-new (template baru).
 
+kamu juga tambahkan di akhir "tolong lakukan testing dan pastikan tidak ada error."
