@@ -19,7 +19,7 @@ const ItemCard = ({ item, onUpdate, onEdit }) => {
   };
 
   const mainPhoto = item.photos && item.photos.length > 0 
-    ? `http://localhost:3333${item.photos[0].photoUrl}` 
+    ? `${process.env.REACT_APP_API_URL || 'http://localhost:3333'}${item.photos[0].photoUrl}` 
     : 'https://via.placeholder.com/150';
 
   return (
