@@ -1,86 +1,66 @@
-# Issue: Integrasi Login Frontend Baru dengan Backend AdonisJS
+# Issue: Migrasi Fitur Manajemen Aset dari Frontend Lama ke Frontend Baru
 
-## Deskripsi
-Kita telah menambahkan template frontend baru di folder `frontend-new` (berbasis Next.js). Saat ini, fitur login di template tersebut masih menggunakan konfigurasi bawaan (dummy credentials dan koneksi database langsung via Prisma). Tugas ini bertujuan untuk mengintegrasikan fitur login NextAuth di frontend baru dengan API autentikasi backend AdonisJS yang sudah ada.
+## Konteks
+Kita telah membeli template frontend baru (Next.js dengan MUI) yang berada di folder `frontend-new`. Integrasi fitur login dan autentikasi dengan backend AdonisJS **sudah selesai dilakukan**.
+Saat ini, kita perlu memigrasikan fitur-fitur manajemen aset utama yang sudah ada di folder `frontend` (React biasa) ke dalam arsitektur template baru di `frontend-new`.
 
 ## Tujuan
-- Menghubungkan proses autentikasi (NextAuth) di `frontend-new` ke endpoint `POST /api/v1/auth/login` pada backend AdonisJS.
-- Menghapus koneksi database langsung (Prisma) dari frontend karena manajemen data ditangani sepenuhnya oleh backend.
-- Menyimpan JWT token yang dikembalikan oleh backend ke dalam session NextAuth agar dapat digunakan untuk request API selanjutnya yang membutuhkan autentikasi.
+Memigrasikan fungsi CRUD (Create, Read, Update, Delete) untuk **Folders**, **Categories**, dan **Items** agar sesuai dengan desain dan standar kode pada template baru (`frontend-new`), serta terhubung dengan benar ke backend API.
+
+## Referensi Kode Lama
+Silakan jadikan komponen-komponen di folder `frontend/src/components` sebagai acuan logika bisnis dan request API:
+- `FolderModal.js`
+- `CategoryModal.js`
+- `ItemCard.js`
+- `ItemModal.js`
+- `MainContent.js`
+- `Sidebar.js`
 
 ## Detail Implementasi (Langkah-langkah)
 
-### 1. Penyesuaian Environment Variables (`frontend-new/.env`)
-- Ubah value `API_URL` agar mengarah ke base URL backend AdonisJS (default AdonisJS berjalan di port 3333 dan memiliki prefix `/api/v1`).
-  ```env
-  API_URL=http://localhost:3333/api/v1
-  ```
-- Pastikan variabel `NEXT_PUBLIC_API_URL` juga sinkron dengan backend.
+### 1. Pahami Arsitektur Template Baru (`frontend-new`)
+- Template baru menggunakan **Next.js App Router** (`src/app`).
+- UI menggunakan komponen **Material UI (MUI)**.
+- Autentikasi ditangani oleh **NextAuth**.
+- Untuk mengambil data yang membutuhkan autentikasi (token JWT), ambil `accessToken` dari session pengguna.
+- Struktur folder biasanya memisahkan **routing** (`src/app/[lang]/(dashboard)/(private)/apps/...`) dan **view components** (`src/views/apps/...`).
 
-### 2. Modifikasi File Konfigurasi NextAuth (`frontend-new/src/libs/auth.js`)
-File ini adalah inti dari perubahan. Lakukan penyesuaian berikut:
+### 2. Implementasi Manajemen Folders
+- Halaman route: `src/app/[lang]/(dashboard)/(private)/apps/folders/page.jsx` (Sebagian sudah dibuat, silakan lanjutkan).
+- View component: `src/views/apps/folders/...`
+- **Fitur yang dibutuhkan:**
+  - Tampilkan daftar folder (fetch dari `GET /api/v1/folders`).
+  - Tambah folder baru (Form/Modal untuk `POST /api/v1/folders`).
+  - Edit folder (`PUT /api/v1/folders/:id`).
+  - Hapus folder (`DELETE /api/v1/folders/:id`).
 
-**A. Hapus Prisma Adapter**
-Backend AdonisJS akan mengelola database, sehingga frontend tidak perlu Prisma.
-- Hapus import `PrismaAdapter` dan `PrismaClient`.
-- Hapus inisialisasi `const prisma = new PrismaClient()`.
-- Hapus opsi `adapter: PrismaAdapter(prisma)` dari object `authOptions`.
+### 3. Implementasi Manajemen Categories
+- Buat halaman route: `src/app/[lang]/(dashboard)/(private)/apps/categories/page.jsx`.
+- Buat view component: `src/views/apps/categories/...`
+- **Fitur yang dibutuhkan:**
+  - Tampilkan daftar kategori (fetch dari `GET /api/v1/categories`).
+  - Tambah kategori baru (`POST /api/v1/categories`).
+  - Edit kategori (`PUT /api/v1/categories/:id`).
+  - Hapus kategori (`DELETE /api/v1/categories/:id`).
 
-**B. Update Logika `authorize` pada `CredentialProvider`**
-- Ubah endpoint API pada fungsi `fetch` dari `${process.env.API_URL}/login` menjadi `${process.env.API_URL}/auth/login` (sesuai struktur route backend).
-- Backend AdonisJS mengharapkan request body `{ email, password }`. Struktur ini sudah sesuai.
-- Tangkap response dari backend. Berdasarkan `access_token_controller.ts` backend, jika berhasil response akan berbentuk:
-  ```json
-  {
-    "user": { ...data user... },
-    "token": "..."
-  }
-  ```
-- Jika request sukses (`res.status === 200`), kembalikan object gabungan yang berisi informasi user dan token, misalnya: 
-  ```javascript
-  return { ...data.user, accessToken: data.token }
-  ```
+### 4. Implementasi Manajemen Items
+- Buat halaman route: `src/app/[lang]/(dashboard)/(private)/apps/items/page.jsx`.
+- Buat view component: `src/views/apps/items/...`
+- **Fitur yang dibutuhkan:**
+  - Tampilkan daftar item (fetch dari `GET /api/v1/items`).
+  - Tambah item baru beserta foto (`POST /api/v1/items`). Perhatikan cara _upload_ file/foto jika ada.
+  - Edit detail item (`PUT /api/v1/items/:id`).
+  - Hapus item (`DELETE /api/v1/items/:id`).
+  - Hapus foto spesifik pada item (`DELETE /api/v1/item-photos/:id`).
 
-**C. Update Callbacks (`jwt` dan `session`)**
-Agar token AdonisJS dapat diakses di sisi client untuk request API (seperti get profile, dsb), token perlu diteruskan melalui JWT NextAuth.
-- **`jwt` callback:**
-  ```javascript
-  async jwt({ token, user }) {
-    if (user) {
-      token.accessToken = user.accessToken; // Simpan token dari backend
-      token.user = user; // Simpan data profile user
-    }
-    return token;
-  }
-  ```
-- **`session` callback:**
-  ```javascript
-  async session({ session, token }) {
-    if (token.user) {
-      session.user = token.user;
-      session.accessToken = token.accessToken;
-    }
-    return session;
-  }
-  ```
+### 5. Penyesuaian API Request
+- Pastikan semua HTTP request (fetch/axios) menyertakan header `Authorization: Bearer <accessToken>`.
+- `accessToken` bisa didapatkan dari session (misalnya dengan `useSession` di _client component_ atau `getServerSession(authOptions)` di _server component_).
+- Base URL API harus menggunakan variabel `process.env.NEXT_PUBLIC_API_URL`.
 
-### 3. Cleanup Kode (Opsional tapi Direkomendasikan)
-- **Hapus Dependensi Prisma**: Hapus `@prisma/client` dan `@auth/prisma-adapter` dari `frontend-new/package.json` dan jalankan ulang `npm install` atau hapus folder `prisma` jika ada.
-- **Penyesuaian Tampilan (`frontend-new/src/views/Login.jsx`)**:
-  - Hapus nilai bawaan (`defaultValues`) `admin@vuexy.com` & `admin` dari konfigurasi `useForm` agar user mengisi secara manual.
-  - Hapus atau ubah `<Alert>` yang menampilkan informasi akun bawaan template.
+## Panduan UI/UX
+- Gunakan komponen bawaan MUI yang tersedia di template (misalnya `Table`, `Card`, `Dialog`/Modal, `TextField`, `Button`).
+- Jangan buat _styling_ mentah dari awal jika ada komponen template yang bisa didaur ulang.
+- Tampilkan notifikasi (misalnya Toast/Snackbar atau `Alert`) saat operasi berhasil atau gagal.
 
-## Referensi File
-- **Backend Route**: `backend/start/routes.ts` (melihat endpoint)
-- **Backend Controller**: `backend/app/controllers/access_token_controller.ts` (melihat format response login)
-- **Frontend Auth Config**: `frontend-new/src/libs/auth.js`
-- **Frontend Env**: `frontend-new/.env`
-- **Frontend Login View**: `frontend-new/src/views/Login.jsx`
-
-## Pengujian & Validasi (Testing)
-Pastikan hal-hal berikut berjalan lancar setelah implementasi selesai:
-1. **Login Berhasil**: Cobalah login menggunakan email dan password yang valid (terdaftar di database backend). Pastikan user ter-redirect ke dashboard/halaman utama setelah berhasil login.
-2. **Penanganan Error Validasi**: Coba login dengan kredensial yang salah. Pastikan UI menampilkan pesan error yang sesuai (misalnya "Invalid credentials") tanpa aplikasi mengalami _crash_.
-3. **Session Terjaga**: Setelah berhasil login, _refresh_ halaman (F5). Pastikan sesi user tidak hilang dan halaman tidak melempar kembali ke form login.
-4. **Token Tersedia**: Lakukan `console.log` sementara pada session di client-side (atau periksa payload session) untuk memastikan field `accessToken` sudah ada dan menyimpan nilai token yang benar dari backend.
-5. **Tidak Ada Error di Console**: Buka developer tools browser (F12) dan console terminal yang menjalankan `npm run dev` pada `frontend-new`. Pastikan bersih dari error _Unhandled Promise Rejection_ atau error koneksi database Prisma.
+tolong lakukan testing dan pastikan tidak ada error.
