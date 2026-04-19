@@ -4,6 +4,7 @@ build
 .adonisjs
 tmp/*
 !tmp/.gitkeep
+public/uploads
 
 # Secrets
 .env
