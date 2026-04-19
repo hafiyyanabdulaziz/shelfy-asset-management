@@ -1,0 +1,9 @@
+tolong kamu buatkan file issue.md yang berisi detail implementasi yang akan diimplementasikan oleh junior developer atau model ai yang lebih murah.
+
+saya ingin di frontend itu ada file .env yang berisi:
+- konfigurasi URL BE nya, jadi nanti kalau produce itu saya ingin bisa mengganti url BE nya dengan mudah tanpa harus mengubah kode.
+- ada konfigurasi lain yang mungkin dibutuhkan untuk produksinya.
+
+kemudian untuk backend itu ada sedikit penyesuaian:
+- saya ingin dibackend ada file .env yang berisi lokasi dari database, jadi saya bisa memindahkan database ke komputer lain dan saya cukup mengganti lokasi database di .env tanpa harus mengubah kode.
+- saya juga ingin di backend ada file .env yang berisi konfigurasi lain yang mungkin dibutuhkan untuk produksinya.
