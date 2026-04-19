@@ -71,22 +71,54 @@ Frontend akan berjalan di `http://localhost:3000`.
 
 ---
 
-## 🛠️ Ringkasan Perintah Penting
+## 🏗️ Build untuk Produksi
 
-### Backend (AdonisJS)
-- `npm run dev`: Menjalankan server dalam mode development (HMR).
-- `node ace migration:run`: Menjalankan migrasi database.
-- `node ace migration:rollback`: Membatalkan migrasi terakhir.
-- `node ace make:controller [Nama]`: Membuat controller baru.
-- `node ace make:model [Nama] -m`: Membuat model beserta migrasinya.
+Sebelum menjalankan aplikasi dalam mode produksi, Anda harus melakukan build pada frontend dan backend untuk performa maksimal.
 
-### Frontend (React)
-- `npm start`: Menjalankan aplikasi React.
-- `npm run build`: Membuat build produksi.
+### 1. Build Backend (AdonisJS)
+```bash
+cd backend
+node ace build
+```
+Hasil build akan berada di folder `backend/build`. 
+> [!IMPORTANT]
+> Pastikan file `.env` sudah dikonfigurasi dengan benar di dalam folder `backend/build`.
+
+### 2. Build Frontend (Next.js)
+```bash
+cd frontend
+yarn build
+# atau
+npm run build
+```
+
+---
+
+## 🚀 Menjalankan Mode Produksi (PM2)
+
+Gunakan **PM2** untuk menjalankan aplikasi di background secara terus-menerus.
+
+### 1. Instal PM2 secara Global
+Jika Anda belum menginstalnya, jalankan:
+```bash
+npm install -g pm2
+```
+
+### 2. Jalankan dengan File Konfigurasi
+Dari direktori **root** proyek (tempat file `ecosystem.config.cjs` berada), jalankan:
+```bash
+pm2 start ecosystem.config.cjs
+```
+
+### 3. Manajemen Proses PM2
+- **Cek Status**: `pm2 status`
+- **Cek Log**: `pm2 logs`
+- **Hentikan Aplikasi**: `pm2 stop ecosystem.config.cjs`
+- **Hapus dari PM2**: `pm2 delete all`
 
 ---
 
 ## 📝 Catatan Penting
-- Pastikan backend berjalan sebelum membuka frontend agar API dapat diakses.
-- Database menggunakan SQLite yang disimpan di folder `backend/tmp/db.sqlite3`.
-- Jika Anda ingin mengubah port, silakan sesuaikan di file `.env` (backend) dan `frontend/src/api/api.js`.
+- Pastikan backend sudah di-build sebelum menjalankan PM2 karena konfigurasi mengarah ke folder `backend/build`.
+- Database menggunakan SQLite (`db.sqlite3`).
+- Jika Anda mengubah port, pastikan sesuaikan di file `.env` dan `ecosystem.config.cjs`.
