@@ -9,10 +9,7 @@ import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 
 // Third-party Imports
-import { Bold } from '@tiptap/extension-bold'
-import { Italic } from '@tiptap/extension-italic'
 import { Placeholder } from '@tiptap/extension-placeholder'
-import { Strike } from '@tiptap/extension-strike'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Underline } from '@tiptap/extension-underline'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
@@ -145,21 +142,13 @@ const EditorToolbar = ({ editor }) => {
 const ProductInformation = () => {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        bold: false,
-        italic: false,
-        strike: false,
-        underline: false
-      }),
+      StarterKit,
       Placeholder.configure({
         placeholder: 'Write something here...'
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph']
       }),
-      Bold,
-      Italic,
-      Strike,
       Underline
     ],
     immediatelyRender: false,
