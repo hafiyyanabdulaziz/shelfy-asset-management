@@ -1,13 +1,8 @@
 // Third-party Imports
 import CredentialProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
-import { PrismaAdapter } from '@auth/prisma-adapter'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
 
 export const authOptions = {
-  adapter: PrismaAdapter(prisma),
 
   // ** Configure one or more authentication providers
   // ** Please refer to https://next-auth.js.org/configuration/options#providers for more `providers` options
@@ -24,17 +19,11 @@ export const authOptions = {
        */
       credentials: {},
       async authorize(credentials) {
-        /*
-         * You need to provide your own logic here that takes the credentials submitted and returns either
-         * an object representing a user or value that is false/null if the credentials are invalid.
-         * For e.g. return { id: 1, name: 'J Smith', email: 'jsmith@example.com' }
-         * You can also use the `req` object to obtain additional parameters (i.e., the request IP address)
-         */
         const { email, password } = credentials
 
         try {
-          // ** Login API Call to match the user credentials and receive user data in response along with his role
-          const res = await fetch(`${process.env.API_URL}/login`, {
+          // Login API Call to AdonisJS backend
+          const res = await fetch(`${process.env.API_URL}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -42,19 +31,22 @@ export const authOptions = {
             body: JSON.stringify({ email, password })
           })
 
-          const data = await res.json()
+          const response = await res.json()
 
-          if (res.status === 401) {
-            throw new Error(JSON.stringify(data))
+          if (res.status !== 200) {
+            throw new Error(JSON.stringify(response))
           }
 
-          if (res.status === 200) {
-            /*
-             * Please unset all the sensitive information of the user either from API response or before returning
-             * user data below. Below return statement will set the user object in the token and the same is set in
-             * the session which will be accessible all over the app.
-             */
-            return data
+          const data = response.data
+
+          if (data && data.user) {
+            // Return user object with token and map fullName to name
+            return {
+              id: data.user.id,
+              name: data.user.fullName,
+              email: data.user.email,
+              accessToken: data.token
+            }
           }
 
           return null
@@ -103,19 +95,16 @@ export const authOptions = {
      */
     async jwt({ token, user }) {
       if (user) {
-        /*
-         * For adding custom parameters to user in session, we first need to add those parameters
-         * in token which then will be available in the `session()` callback
-         */
-        token.name = user.name
+        token.accessToken = user.accessToken
+        token.user = user
       }
 
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
-        // ** Add custom params to user in session which are added in `jwt()` callback via `token` parameter
-        session.user.name = token.name
+      if (token.user) {
+        session.user = token.user
+        session.accessToken = token.accessToken
       }
 
       return session

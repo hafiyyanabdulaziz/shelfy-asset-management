@@ -70,6 +70,16 @@ const UserDropdown = () => {
 
   const handleUserLogout = async () => {
     try {
+      // Logout from backend
+      if (session?.accessToken) {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+      }
+
       // Sign out from the app
       await signOut({ callbackUrl: process.env.NEXT_PUBLIC_APP_URL })
     } catch (error) {

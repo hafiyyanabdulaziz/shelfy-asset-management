@@ -5,7 +5,7 @@ import { useState } from 'react'
 
 // Next Imports
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 
 // MUI Imports
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -17,9 +17,14 @@ import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Divider from '@mui/material/Divider'
+import Alert from '@mui/material/Alert'
 
 // Third-party Imports
+import { useForm, Controller } from 'react-hook-form'
+import { valibotResolver } from '@hookform/resolvers/valibot'
+import { email, object, minLength, string, pipe, nonEmpty, forward, partialCheck } from 'valibot'
 import classnames from 'classnames'
+import { signIn } from 'next-auth/react'
 
 // Component Imports
 import Logo from '@components/layout/shared/Logo'
@@ -56,9 +61,31 @@ const MaskImg = styled('img')({
   zIndex: -1
 })
 
+const schema = pipe(
+  object({
+    fullName: pipe(string(), nonEmpty('This field is required')),
+    email: pipe(string(), minLength(1, 'This field is required'), email('Email is invalid')),
+    password: pipe(
+      string(),
+      nonEmpty('This field is required'),
+      minLength(8, 'Password must be at least 8 characters long')
+    ),
+    passwordConfirmation: pipe(string(), nonEmpty('This field is required'))
+  }),
+  forward(
+    partialCheck(
+      [['password'], ['passwordConfirmation']],
+      input => input.password === input.passwordConfirmation,
+      'Passwords do not match'
+    ),
+    ['passwordConfirmation']
+  )
+)
+
 const Register = ({ mode }) => {
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
+  const [errorState, setErrorState] = useState(null)
 
   // Vars
   const darkImg = '/images/pages/auth-mask-dark.png'
@@ -69,11 +96,26 @@ const Register = ({ mode }) => {
   const borderedLightIllustration = '/images/illustrations/auth/v2-register-light-border.png'
 
   // Hooks
+  const router = useRouter()
   const { lang: locale } = useParams()
   const { settings } = useSettings()
   const theme = useTheme()
   const hidden = useMediaQuery(theme.breakpoints.down('md'))
   const authBackground = useImageVariant(mode, lightImg, darkImg)
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors }
+  } = useForm({
+    resolver: valibotResolver(schema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      passwordConfirmation: ''
+    }
+  })
 
   const characterIllustration = useImageVariant(
     mode,
@@ -84,6 +126,37 @@ const Register = ({ mode }) => {
   )
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
+
+  const onSubmit = async data => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+
+      const responseData = await res.json()
+
+      if (res.status === 200) {
+        // Automatically login after successful registration
+        const loginRes = await signIn('credentials', {
+          email: data.email,
+          password: data.password,
+          redirect: false
+        })
+
+        if (loginRes && loginRes.ok) {
+          router.replace(getLocalizedUrl('/', locale))
+        }
+      } else {
+        setErrorState(responseData)
+      }
+    } catch (e) {
+      setErrorState({ message: [e.message] })
+    }
+  }
 
   return (
     <div className='flex bs-full justify-center'>
@@ -110,25 +183,76 @@ const Register = ({ mode }) => {
             <Typography variant='h4'>Adventure starts here 🚀</Typography>
             <Typography>Make your app management easy and fun!</Typography>
           </div>
-          <form noValidate autoComplete='off' onSubmit={e => e.preventDefault()} className='flex flex-col gap-6'>
-            <CustomTextField autoFocus fullWidth label='Username' placeholder='Enter your username' />
-            <CustomTextField fullWidth label='Email' placeholder='Enter your email' />
-            <CustomTextField
-              fullWidth
-              label='Password'
-              placeholder='············'
-              type={isPasswordShown ? 'text' : 'password'}
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <IconButton edge='end' onClick={handleClickShowPassword} onMouseDown={e => e.preventDefault()}>
-                        <i className={isPasswordShown ? 'tabler-eye-off' : 'tabler-eye'} />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }
-              }}
+          <form noValidate autoComplete='off' onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6'>
+            <Controller
+              name='fullName'
+              control={control}
+              render={({ field }) => (
+                <CustomTextField
+                  {...field}
+                  autoFocus
+                  fullWidth
+                  label='Full Name'
+                  placeholder='Enter your full name'
+                  {...(errors.fullName && { error: true, helperText: errors.fullName.message })}
+                />
+              )}
+            />
+            <Controller
+              name='email'
+              control={control}
+              render={({ field }) => (
+                <CustomTextField
+                  {...field}
+                  fullWidth
+                  label='Email'
+                  placeholder='Enter your email'
+                  {...(errors.email && { error: true, helperText: errors.email.message })}
+                />
+              )}
+            />
+            <Controller
+              name='password'
+              control={control}
+              render={({ field }) => (
+                <CustomTextField
+                  {...field}
+                  fullWidth
+                  label='Password'
+                  placeholder='············'
+                  type={isPasswordShown ? 'text' : 'password'}
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position='end'>
+                          <IconButton
+                            edge='end'
+                            onClick={handleClickShowPassword}
+                            onMouseDown={e => e.preventDefault()}
+                          >
+                            <i className={isPasswordShown ? 'tabler-eye-off' : 'tabler-eye'} />
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }
+                  }}
+                  {...(errors.password && { error: true, helperText: errors.password.message })}
+                />
+              )}
+            />
+            <Controller
+              name='passwordConfirmation'
+              control={control}
+              render={({ field }) => (
+                <CustomTextField
+                  {...field}
+                  fullWidth
+                  label='Confirm Password'
+                  placeholder='············'
+                  type={isPasswordShown ? 'text' : 'password'}
+                  {...(errors.passwordConfirmation && { error: true, helperText: errors.passwordConfirmation.message })}
+                />
+              )}
             />
             <FormControlLabel
               control={<Checkbox />}
@@ -141,6 +265,13 @@ const Register = ({ mode }) => {
                 </>
               }
             />
+            {errorState && (
+              <Alert severity='error'>
+                {Array.isArray(errorState.message)
+                  ? errorState.message[0]
+                  : errorState.message || errorState.errors?.[0]?.message || 'Registration failed'}
+              </Alert>
+            )}
             <Button fullWidth variant='contained' type='submit'>
               Sign Up
             </Button>
