@@ -30,4 +30,12 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   // CORS
   CORS_ORIGIN: Env.schema.string.optional(),
+
+  // MinIO
+  MINIO_ENDPOINT: Env.schema.string(),
+  MINIO_PORT: Env.schema.number(),
+  MINIO_ACCESS_KEY: Env.schema.string(),
+  MINIO_SECRET_KEY: Env.schema.string(),
+  MINIO_USE_SSL: Env.schema.boolean(),
+  MINIO_BUCKET: Env.schema.string(),
 })

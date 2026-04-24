@@ -1,9 +1,51 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Item from '#models/item'
-import app from '@adonisjs/core/services/app'
-import { randomUUID } from 'node:crypto'
+import minioService from '#services/minio_service'
+import { readFile } from 'node:fs/promises'
 
 export default class ItemsController {
+  /**
+   * Serialize items with presigned URLs for photos
+   */
+  private async serializeWithSignedUrls(items: Item[]) {
+    const result = []
+
+    for (const item of items) {
+      const itemJson = item.toJSON()
+
+      if (itemJson.photos && itemJson.photos.length > 0) {
+        itemJson.photos = await Promise.all(
+          itemJson.photos.map(async (photo: any) => ({
+            ...photo,
+            signedUrl: await minioService.getPresignedUrl(photo.photoUrl),
+          }))
+        )
+      }
+
+      result.push(itemJson)
+    }
+
+    return result
+  }
+
+  /**
+   * Serialize a single item with presigned URLs for photos
+   */
+  private async serializeItemWithSignedUrls(item: Item) {
+    const itemJson = item.toJSON()
+
+    if (itemJson.photos && itemJson.photos.length > 0) {
+      itemJson.photos = await Promise.all(
+        itemJson.photos.map(async (photo: any) => ({
+          ...photo,
+          signedUrl: await minioService.getPresignedUrl(photo.photoUrl),
+        }))
+      )
+    }
+
+    return itemJson
+  }
+
   /**
    * Display a list of resource
    */
@@ -25,7 +67,9 @@ export default class ItemsController {
     }
 
     const items = await query
-    return response.ok(items)
+    const serialized = await this.serializeWithSignedUrls(items)
+
+    return response.ok(serialized)
   }
 
   /**
@@ -51,17 +95,20 @@ export default class ItemsController {
 
     for (const photo of photos) {
       if (photo.isValid) {
-        await photo.move(app.publicPath('uploads'), {
-          name: `${randomUUID()}.${photo.extname}`,
-        })
+        const fileBuffer = await readFile(photo.tmpPath!)
+        const contentType = photo.contentType || 'image/jpeg'
+        
+        const objectKey = await minioService.uploadFile(fileBuffer, photo.clientName, contentType)
+        
         await item.related('photos').create({
-          photoUrl: `/uploads/${photo.fileName}`,
+          photoUrl: objectKey,
         })
       }
     }
 
     await item.load('photos')
-    return response.created(item)
+    const serialized = await this.serializeItemWithSignedUrls(item)
+    return response.created(serialized)
   }
 
   /**
@@ -74,7 +121,9 @@ export default class ItemsController {
       .preload('folder')
       .preload('category')
       .firstOrFail()
-    return response.ok(item)
+
+    const serialized = await this.serializeItemWithSignedUrls(item)
+    return response.ok(serialized)
   }
 
   /**
@@ -102,17 +151,20 @@ export default class ItemsController {
 
     for (const photo of photos) {
       if (photo.isValid) {
-        await photo.move(app.publicPath('uploads'), {
-          name: `${randomUUID()}.${photo.extname}`,
-        })
+        const fileBuffer = await readFile(photo.tmpPath!)
+        const contentType = photo.contentType || 'image/jpeg'
+        
+        const objectKey = await minioService.uploadFile(fileBuffer, photo.clientName, contentType)
+
         await item.related('photos').create({
-          photoUrl: `/uploads/${photo.fileName}`,
+          photoUrl: objectKey,
         })
       }
     }
 
     await item.load('photos')
-    return response.ok(item)
+    const serialized = await this.serializeItemWithSignedUrls(item)
+    return response.ok(serialized)
   }
 
   /**
@@ -120,7 +172,23 @@ export default class ItemsController {
    */
   async destroy({ params, response }: HttpContext) {
     const item = await Item.findOrFail(params.id)
+
+    // Load and delete all photos from MinIO first
+    await item.load('photos')
+
+    for (const photo of item.photos) {
+      try {
+        await minioService.deleteFile(photo.photoUrl)
+      } catch (error) {
+        console.warn('Warning: Could not delete photo from MinIO:', error.message)
+      }
+    }
+
+    // Delete the item (cascading delete will remove photo records if configured,
+    // otherwise delete them manually)
+    await item.related('photos').query().delete()
     await item.delete()
+
     return response.noContent()
   }
-}
+}
