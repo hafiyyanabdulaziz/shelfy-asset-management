@@ -35,7 +35,7 @@ const ItemCard = ({ item, onUpdate, onEdit }) => {
   }
 
   const mainPhoto = item.photos && item.photos.length > 0 
-    ? `${process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '')}${item.photos[0].photoUrl}` 
+    ? item.photos[0].signedUrl
     : 'https://placehold.co/600x400?text=No+Image'
 
   return (
