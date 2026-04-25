@@ -91,9 +91,6 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
           </MenuItem>
         </SubMenu>
         <MenuSection label={dictionary['navigation'].shelfyAssets}>
-          <MenuItem href={`/${locale}/apps/folders`} icon={<i className='tabler-folder' />}>
-            {dictionary['navigation'].folders}
-          </MenuItem>
           <MenuItem href={`/${locale}/apps/categories`} icon={<i className='tabler-category' />}>
             {dictionary['navigation'].categories}
           </MenuItem>

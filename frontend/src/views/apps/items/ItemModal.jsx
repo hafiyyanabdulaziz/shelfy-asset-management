@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography'
 // Third-party Imports
 import { useSession } from 'next-auth/react'
 
-const ItemModal = ({ open, handleClose, item, onUpdate, folders, categories }) => {
+const ItemModal = ({ open, handleClose, item, onUpdate, folders, categories, defaultFolderId }) => {
   // States
   const [formData, setFormData] = useState({
     name: '',
@@ -52,12 +52,12 @@ const ItemModal = ({ open, handleClose, item, onUpdate, folders, categories }) =
         price: '',
         qty: 1,
         location: '',
-        folderId: '',
+        folderId: defaultFolderId || '',
         categoryId: ''
       })
     }
     setPhotos([])
-  }, [item, open])
+  }, [item, open, defaultFolderId])
 
   const handleSubmit = async () => {
     if (!formData.name) return

@@ -2,7 +2,7 @@
 import { getServerSession } from 'next-auth'
 
 // Component Imports
-import ItemsList from '@views/apps/items/ItemsList'
+import FileExplorer from '@views/apps/items/FileExplorer'
 
 // Lib Imports
 import { authOptions } from '@/libs/auth'
@@ -22,22 +22,27 @@ const getData = async (accessToken, endpoint) => {
   return res.json()
 }
 
-const ItemsApp = async () => {
+const ItemsApp = async ({ searchParams }) => {
   const session = await getServerSession(authOptions)
   const token = session?.accessToken
 
-  // Fetch all required data in parallel
-  const [itemsData, foldersData, categoriesData] = await Promise.all([
-    getData(token, 'items'),
+  const resolvedSearchParams = await searchParams
+  const folderId = resolvedSearchParams?.folderId || ''
+  const browseUrl = folderId
+    ? `folders/browse?parentId=${folderId}`
+    : 'folders/browse'
+
+  const [browseData, allFolders, categoriesData] = await Promise.all([
+    getData(token, browseUrl),
     getData(token, 'folders'),
     getData(token, 'categories')
   ])
 
   return (
-    <ItemsList 
-      itemsData={itemsData} 
-      folders={foldersData} 
-      categories={categoriesData} 
+    <FileExplorer
+      browseData={browseData}
+      allFolders={allFolders}
+      categories={categoriesData}
     />
   )
 }

@@ -15,7 +15,7 @@ import MenuItem from '@mui/material/MenuItem'
 // Third-party Imports
 import { useSession } from 'next-auth/react'
 
-const AddFolderModal = ({ open, handleClose, onUpdate, folders, folderToEdit }) => {
+const AddFolderModal = ({ open, handleClose, onUpdate, folders, folderToEdit, defaultParentId }) => {
   // States
   const [name, setName] = useState('')
   const [parentId, setParentId] = useState('')
@@ -30,9 +30,9 @@ const AddFolderModal = ({ open, handleClose, onUpdate, folders, folderToEdit }) 
       setParentId(folderToEdit.parentId || '')
     } else {
       setName('')
-      setParentId('')
+      setParentId(defaultParentId || '')
     }
-  }, [folderToEdit, open])
+  }, [folderToEdit, open, defaultParentId])
 
   const handleSubmit = async () => {
     if (!name) return
