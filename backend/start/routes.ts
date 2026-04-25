@@ -33,6 +33,7 @@ router
       .prefix('account')
       .as('profile')
       .use(middleware.auth())
+    router.get('folders/browse', '#controllers/folders_controller.browse')
     router.resource('folders', '#controllers/folders_controller').apiOnly()
     router.resource('categories', '#controllers/categories_controller').apiOnly()
     router.resource('items', '#controllers/items_controller').apiOnly()
