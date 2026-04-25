@@ -77,22 +77,6 @@ const AddFolderModal = ({ open, handleClose, onUpdate, folders, folderToEdit, de
             onChange={e => setName(e.target.value)}
             autoFocus
           />
-          <TextField
-            select
-            fullWidth
-            label='Parent Folder (Optional)'
-            value={parentId}
-            onChange={e => setParentId(e.target.value)}
-          >
-            <MenuItem value=''>Root</MenuItem>
-            {folders
-              .filter(f => f.id !== folderToEdit?.id) // Prevent self-parenting
-              .map(f => (
-                <MenuItem key={f.id} value={f.id}>
-                  {f.name}
-                </MenuItem>
-              ))}
-          </TextField>
         </div>
       </DialogContent>
       <DialogActions>
